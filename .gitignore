@@ -1,3 +1,8 @@
 .idea/
 .ipynb_checkpoints/
 **.log
+minidrone/__pycache__/__init__.cpython-310.pyc
+minidrone/__pycache__/controller.cpython-310.pyc
+minidrone/__pycache__/receiver.cpython-310.pyc
+minidrone/__pycache__/sender.cpython-310.pyc
+minidrone/__pycache__/video.cpython-310.pyc
