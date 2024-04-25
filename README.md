@@ -1,7 +1,7 @@
 Modifications planned:
 - [x] Smoother manual control of robot
 - [x] Face detection in camera
-- [ ] Body detection in camera
+- [x] Body detection in camera
 - [ ] Person tracking
 - [ ] Person following
 - [ ] Object tracking
