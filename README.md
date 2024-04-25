@@ -4,10 +4,13 @@ Modifications planned:
 - [x] Body detection in camera
 - [ ] Person tracking
 - [ ] Person following
-- [ ] Object tracking
-- [ ] Object following
+- [ ] Object tracking - rolling ball
+- [ ] Object following - rolling ball
 - [ ] Orb-SLAM for Monocular Vision - No Odometry/Intertial Measurement
 - [ ] Patrol for person / object detection and then follow
+
+
+Original author's readme notes below
 
 # Sumo Control
 **Update:** I'm having to work on a different project for my master's so this will be indefinitely suspended. I hope to return to it in future.
