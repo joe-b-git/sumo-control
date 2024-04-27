@@ -1,45 +1,35 @@
 import cv2
 import numpy as np
-import os
 from PIL import Image
 from io import BytesIO
 from threading import Event, Thread
-
+import os
 
 class SumoDisplay(Thread):
-    """
-    Displays frames received from the Jumping Sumo
-    """
-
     def __init__(self, receiver):
         Thread.__init__(self, name='SumoDisplay')
-        # self.setDaemon(True)
-
         self.receiver = receiver
         self.should_run = Event()
         self.should_run.set()
-
         self.window_name = 'Sumo Display'
-        # cv2.namedWindow('SumoDisplay')
+
+        # Get the Yolo data, must download to the "data" folder
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        yolo_weights_path = os.path.join(current_dir, 'data', 'yolov3.weights')
+        yolo_config_path = os.path.join(current_dir, 'data', 'yolov3.cfg')
+
+        # Load YOLO
+        self.net = cv2.dnn.readNet(yolo_weights_path, yolo_config_path)
+        self.layer_names = self.net.getLayerNames()
+        output_layers_indices = self.net.getUnconnectedOutLayers()
+        if output_layers_indices.ndim == 1:
+            # This is a 1-D numpy array of integers
+            self.output_layers = [self.layer_names[i - 1] for i in output_layers_indices]
+        else:
+            # This is a 2-D numpy array of integers
+            self.output_layers = [self.layer_names[i[0] - 1] for i in output_layers_indices]
 
     def run(self):
-        # Get the current directory
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Construct the path to the Haar cascade files
-        # face_cascade_path = os.path.join(current_dir, 'data', 'haarcascade_frontalface_default.xml')
-        # fullbody_cascade_path = os.path.join(current_dir, 'data', 'haarcascade_fullbody.xml')
-        upperbody_cascade_path = os.path.join(current_dir, 'data', 'haarcascade_upperbody.xml')
-        # lowerbody_cascade_path = os.path.join(current_dir, 'data', 'haarcascade_lowerbody.xml')
-
-        # Load the Haar cascade xml files for face, full body, and upper body detection
-        # face_cascade = cv2.CascadeClassifier(face_cascade_path)
-        # fullbody_cascade = cv2.CascadeClassifier(fullbody_cascade_path)
-        upperbody_cascade = cv2.CascadeClassifier(upperbody_cascade_path)
-        # lowerbody_cascade = cv2.CascadeClassifier(lowerbody_cascade_path)
-
-        tracker = cv2.TrackerKCF_create()
-
         while self.should_run.isSet():
             frame = self.receiver.get_frame()
 
@@ -47,38 +37,47 @@ class SumoDisplay(Thread):
                 byte_frame = BytesIO(frame)
                 img = np.array(Image.open(byte_frame))
 
-                # Convert the image to grayscale
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                height, width, channels = img.shape
 
-                # Detect faces, full bodies, and upper bodies
-                # faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-                # fullbodies = fullbody_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=3, minSize=(20, 20))
-                upperbodies = upperbody_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=8, minSize=(75, 75))
-                # lowerbodies = lowerbody_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2, minSize=(20, 20))
+                # Detecting objects
+                blob = cv2.dnn.blobFromImage(img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+                self.net.setInput(blob)
+                outs = self.net.forward(self.output_layers)
 
-                # # Draw a yellow circle around each face
-                # for (x, y, w, h) in faces:
-                #     cv2.circle(img, (x + w//2, y + h//2), max(w, h)//2, (0, 255, 255), 2)
+                # Showing informations on the screen
+                class_ids = []
+                confidences = []
+                boxes = []
+                for out in outs:
+                    for detection in out:
+                        scores = detection[5:]
+                        class_id = np.argmax(scores)
+                        confidence = scores[class_id]
+                        if confidence > 0.5:
+                            # Object detected
+                            center_x = int(detection[0] * width)
+                            center_y = int(detection[1] * height)
+                            w = int(detection[2] * width)
+                            h = int(detection[3] * height)
 
-                # # Draw an orange bounding box around each full body
-                # for (x, y, w, h) in fullbodies:
-                #     cv2.rectangle(img, (x, y), (x+w, y+h), (0, 165, 255), 2)
+                            # Rectangle coordinates
+                            x = int(center_x - w / 2)
+                            y = int(center_y - h / 2)
 
-                # Draw a green bounding box around each upper body
-                for (x, y, w, h) in upperbodies:
-                    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                            boxes.append([x, y, w, h])
+                            confidences.append(float(confidence))
+                            class_ids.append(class_id)
 
-                # # Draw a red bounding box around each upper body
-                # for (x, y, w, h) in lowerbodies:
-                #     cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+                for i in range(len(boxes)):
+                    if i in indexes:
+                        x, y, w, h = boxes[i]
+                        cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
                 cv2.imshow(self.window_name, img)
 
             cv2.waitKey(25)
 
     def disconnect(self):
-        """
-        Stops the main loop and closes the display window
-        """
         self.should_run.clear()
         cv2.destroyWindow(self.window_name)
