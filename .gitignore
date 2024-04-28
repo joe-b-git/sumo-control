@@ -12,3 +12,4 @@ minidrone/__pycache__/receiver.cpython-311.pyc
 minidrone/__pycache__/sender.cpython-311.pyc
 minidrone/__pycache__/video.cpython-311.pyc
 minidrone/data/
+minidrone/debug/

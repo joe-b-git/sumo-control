@@ -4,6 +4,7 @@ from PIL import Image
 from io import BytesIO
 from threading import Event, Thread
 import os
+import time
 
 class SumoDisplay(Thread):
     def __init__(self, receiver):
@@ -20,6 +21,9 @@ class SumoDisplay(Thread):
 
         # Load YOLO
         self.net = cv2.dnn.readNet(yolo_weights_path, yolo_config_path)
+        if (cv2.cuda.getCudaEnabledDeviceCount() > 0):
+            self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+            self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
         self.layer_names = self.net.getLayerNames()
         output_layers_indices = self.net.getUnconnectedOutLayers()
         if output_layers_indices.ndim == 1:
@@ -30,12 +34,20 @@ class SumoDisplay(Thread):
             self.output_layers = [self.layer_names[i[0] - 1] for i in output_layers_indices]
 
     def run(self):
+        prev_frame_time = 0
         while self.should_run.isSet():
             frame = self.receiver.get_frame()
 
             if frame is not None:
+                # Calculate FPS
+                new_frame_time = time.time()
+                fps = 1 / (new_frame_time - prev_frame_time)
+                prev_frame_time = new_frame_time
+                fps_text = f'FPS: {fps:.2f}'
+
                 byte_frame = BytesIO(frame)
                 img = np.array(Image.open(byte_frame))
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
                 height, width, channels = img.shape
 
@@ -72,7 +84,10 @@ class SumoDisplay(Thread):
                 for i in range(len(boxes)):
                     if i in indexes:
                         x, y, w, h = boxes[i]
-                        cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
+
+                # Draw FPS on the image
+                cv2.putText(img, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
                 cv2.imshow(self.window_name, img)
 
