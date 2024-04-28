@@ -1,6 +1,7 @@
 import logging
 from pynput import keyboard
 from minidrone.controller import SumoController
+import os
 
 # Initialize speed and turn
 speed, turn = 0, 0
@@ -47,6 +48,10 @@ def main():
                 break
 
             ctrl.move(speed, turn)
+
+            os.system('clear')  # Clear the terminal screen
+            print('Person detected:', ctrl.display.person_detected)
+            print('Position of the most centered person:', ctrl.display.person_position)
 
 if __name__ == '__main__':
     logging.basicConfig(filename='sumo.log', level=logging.INFO)

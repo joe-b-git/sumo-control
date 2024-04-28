@@ -16,8 +16,8 @@ class SumoDisplay(Thread):
 
         # Get the Yolo data, must download to the "data" folder
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        yolo_weights_path = os.path.join(current_dir, 'data', 'yolov3.weights')
-        yolo_config_path = os.path.join(current_dir, 'data', 'yolov3.cfg')
+        yolo_weights_path = os.path.join(current_dir, 'data', 'yolov4.weights')
+        yolo_config_path = os.path.join(current_dir, 'data', 'yolov4.cfg')
 
         # Load YOLO
         self.net = cv2.dnn.readNet(yolo_weights_path, yolo_config_path)
@@ -32,6 +32,12 @@ class SumoDisplay(Thread):
         else:
             # This is a 2-D numpy array of integers
             self.output_layers = [self.layer_names[i[0] - 1] for i in output_layers_indices]
+
+        self.frame_count = 0
+        self.prev_detections = None
+
+        self.person_detected = False
+        self.person_position = None
 
     def run(self):
         prev_frame_time = 0
@@ -52,9 +58,17 @@ class SumoDisplay(Thread):
                 height, width, channels = img.shape
 
                 # Detecting objects
-                blob = cv2.dnn.blobFromImage(img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-                self.net.setInput(blob)
-                outs = self.net.forward(self.output_layers)
+                if self.frame_count % 2 == 0 or True:  # Run detection on every 5th frame
+                    blob = cv2.dnn.blobFromImage(img, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+                    self.net.setInput(blob)
+                    outs = self.net.forward(self.output_layers)
+                    self.prev_detections = outs
+                else:
+                    outs = self.prev_detections
+
+                # Reset instance variables
+                self.person_detected = False
+                self.person_position = None
 
                 # Showing informations on the screen
                 class_ids = []
@@ -80,14 +94,33 @@ class SumoDisplay(Thread):
                             confidences.append(float(confidence))
                             class_ids.append(class_id)
 
+                closest_person_distance = float('inf')
+
                 indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+
                 for i in range(len(boxes)):
                     if i in indexes:
                         x, y, w, h = boxes[i]
                         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
 
+                        # If a person is detected
+                        if class_ids[i] == 0:  # Assuming the class ID for 'person' is 0
+                            self.person_detected = True
+
+                            # Calculate the bottom center of the bounding box
+                            bottom_center_x = x + w / 2
+                            bottom_center_y = y + h
+
+                            # Check if this person is more centered than the previous ones
+                            distance_to_center = abs(width / 2 - bottom_center_x)
+                            if distance_to_center < closest_person_distance:
+                                closest_person_distance = distance_to_center
+                                self.person_position = (bottom_center_x, bottom_center_y)
+
                 # Draw FPS on the image
                 cv2.putText(img, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+                self.frame_count += 1
 
                 cv2.imshow(self.window_name, img)
 
