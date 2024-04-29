@@ -50,8 +50,11 @@ def main():
             ctrl.move(speed, turn)
 
             os.system('clear')  # Clear the terminal screen
-            print('Person detected:', ctrl.display.person_detected)
-            print('Position of the most centered person:', ctrl.display.person_position)
+
+            # Use the lock when reading shared data
+            with ctrl.display.lock:
+                print('Person detected:', ctrl.display.person_detected)
+                print('Position of the most centered person:', ctrl.display.person_position)
 
 if __name__ == '__main__':
     logging.basicConfig(filename='sumo.log', level=logging.INFO)

@@ -5,6 +5,7 @@ from io import BytesIO
 from threading import Event, Thread
 import os
 import time
+from threading import Lock
 
 class SumoDisplay(Thread):
     def __init__(self, receiver):
@@ -18,6 +19,8 @@ class SumoDisplay(Thread):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         yolo_weights_path = os.path.join(current_dir, 'data', 'yolov4.weights')
         yolo_config_path = os.path.join(current_dir, 'data', 'yolov4.cfg')
+
+        self.lock = Lock()  # Create a lock
 
         # Load YOLO
         self.net = cv2.dnn.readNet(yolo_weights_path, yolo_config_path)
@@ -66,56 +69,57 @@ class SumoDisplay(Thread):
                 else:
                     outs = self.prev_detections
 
-                # Reset instance variables
-                self.person_detected = False
-                self.person_position = None
+                with self.lock:  # Use the lock when modifying shared data
+                    # Reset instance variables
+                    self.person_detected = False
+                    self.person_position = None
 
-                # Showing informations on the screen
-                class_ids = []
-                confidences = []
-                boxes = []
-                for out in outs:
-                    for detection in out:
-                        scores = detection[5:]
-                        class_id = np.argmax(scores)
-                        confidence = scores[class_id]
-                        if confidence > 0.5:
-                            # Object detected
-                            center_x = int(detection[0] * width)
-                            center_y = int(detection[1] * height)
-                            w = int(detection[2] * width)
-                            h = int(detection[3] * height)
+                    # Showing informations on the screen
+                    class_ids = []
+                    confidences = []
+                    boxes = []
+                    for out in outs:
+                        for detection in out:
+                            scores = detection[5:]
+                            class_id = np.argmax(scores)
+                            confidence = scores[class_id]
+                            if confidence > 0.5:
+                                # Object detected
+                                center_x = int(detection[0] * width)
+                                center_y = int(detection[1] * height)
+                                w = int(detection[2] * width)
+                                h = int(detection[3] * height)
 
-                            # Rectangle coordinates
-                            x = int(center_x - w / 2)
-                            y = int(center_y - h / 2)
+                                # Rectangle coordinates
+                                x = int(center_x - w / 2)
+                                y = int(center_y - h / 2)
 
-                            boxes.append([x, y, w, h])
-                            confidences.append(float(confidence))
-                            class_ids.append(class_id)
+                                boxes.append([x, y, w, h])
+                                confidences.append(float(confidence))
+                                class_ids.append(class_id)
 
-                closest_person_distance = float('inf')
+                    closest_person_distance = float('inf')
 
-                indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+                    indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
 
-                for i in range(len(boxes)):
-                    if i in indexes:
-                        x, y, w, h = boxes[i]
-                        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
+                    for i in range(len(boxes)):
+                        if i in indexes:
+                            x, y, w, h = boxes[i]
+                            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
 
-                        # If a person is detected
-                        if class_ids[i] == 0:  # Assuming the class ID for 'person' is 0
-                            self.person_detected = True
+                            # If a person is detected
+                            if class_ids[i] == 0:  # Assuming the class ID for 'person' is 0
+                                self.person_detected = True
 
-                            # Calculate the bottom center of the bounding box
-                            bottom_center_x = x + w / 2
-                            bottom_center_y = y + h
+                                # Calculate the bottom center of the bounding box
+                                bottom_center_x = x + w / 2
+                                bottom_center_y = y + h
 
-                            # Check if this person is more centered than the previous ones
-                            distance_to_center = abs(width / 2 - bottom_center_x)
-                            if distance_to_center < closest_person_distance:
-                                closest_person_distance = distance_to_center
-                                self.person_position = (bottom_center_x, bottom_center_y)
+                                # Check if this person is more centered than the previous ones
+                                distance_to_center = abs(width / 2 - bottom_center_x)
+                                if distance_to_center < closest_person_distance:
+                                    closest_person_distance = distance_to_center
+                                    self.person_position = (bottom_center_x, bottom_center_y)
 
                 # Draw FPS on the image
                 cv2.putText(img, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
