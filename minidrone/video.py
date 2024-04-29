@@ -17,8 +17,12 @@ class SumoDisplay(Thread):
 
         # Get the Yolo data, must download to the "data" folder
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        yolo_weights_path = os.path.join(current_dir, 'data', 'yolov4.weights')
-        yolo_config_path = os.path.join(current_dir, 'data', 'yolov4.cfg')
+        if (cv2.cuda.getCudaEnabledDeviceCount() > 0):
+            yolo_weights_path = os.path.join(current_dir, 'data', 'yolov4.weights')
+            yolo_config_path = os.path.join(current_dir, 'data', 'yolov4.cfg')
+        else:
+            yolo_weights_path = os.path.join(current_dir, 'data', 'yolov4-tiny.weights')
+            yolo_config_path = os.path.join(current_dir, 'data', 'yolov4-tiny.cfg')
 
         self.lock = Lock()  # Create a lock
 
