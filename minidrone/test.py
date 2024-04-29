@@ -1,6 +1,6 @@
 import logging
 from pynput import keyboard
-from minidrone.controller import SumoController
+from controller import SumoController
 import os
 
 # Initialize speed and turn
