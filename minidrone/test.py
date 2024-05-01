@@ -47,14 +47,31 @@ def main():
             if keyboard.Key.esc in current_keys:
                 break
 
-            ctrl.move(speed, turn)
-
-            os.system('clear')  # Clear the terminal screen
-
             # Use the lock when reading shared data
             with ctrl.display.lock:
                 print('Person detected:', ctrl.display.person_detected)
                 print('Position of the most centered person:', ctrl.display.person_position)
+
+                turn = 0  # Initialize turn
+
+                if ctrl.display.person_detected:
+                    # Assuming the center of the image is at x = 320
+                    if ctrl.display.person_position[0] < 100:
+                        turn = -40
+                    elif ctrl.display.person_position[0] < 180:
+                        turn = -20
+                    elif ctrl.display.person_position[0] < 260:
+                        turn = -10  # Turn left
+                    elif ctrl.display.person_position[0] > 540:
+                        turn = 30
+                    elif ctrl.display.person_position[0] > 460:
+                        turn = 20
+                    elif ctrl.display.person_position[0] > 380:
+                        turn = 40  # Turn right
+
+            ctrl.move(speed, turn)
+
+            os.system('clear')  # Clear the terminal screen
 
 if __name__ == '__main__':
     logging.basicConfig(filename='sumo.log', level=logging.INFO)

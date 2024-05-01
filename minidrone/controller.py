@@ -2,9 +2,9 @@ import json
 import socket
 import logging
 
-from minidrone.receiver import SumoReceiver
-from minidrone.sender import SumoSender, move_cmd
-from minidrone.video import SumoDisplay
+from receiver import SumoReceiver
+from sender import SumoSender, move_cmd
+from video import SumoDisplay
 
 
 class SumoController:
