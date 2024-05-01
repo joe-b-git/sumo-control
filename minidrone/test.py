@@ -63,11 +63,11 @@ def main():
                     elif ctrl.display.person_position[0] < 260:
                         turn = -10  # Turn left
                     elif ctrl.display.person_position[0] > 540:
-                        turn = 30
+                        turn = 40
                     elif ctrl.display.person_position[0] > 460:
                         turn = 20
                     elif ctrl.display.person_position[0] > 380:
-                        turn = 40  # Turn right
+                        turn = 10  # Turn right
 
             ctrl.move(speed, turn)
 
