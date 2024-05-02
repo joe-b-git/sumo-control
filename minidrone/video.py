@@ -108,11 +108,11 @@ class SumoDisplay(Thread):
 
                     for i in range(len(boxes)):
                         if i in indexes:
-                            x, y, w, h = boxes[i]
-                            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
-
                             # If a person is detected
                             if class_ids[i] == 0:  # Assuming the class ID for 'person' is 0
+                                x, y, w, h = boxes[i]
+                                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 255), 2)
+
                                 self.person_detected = True
 
                                 # Calculate the bottom center of the bounding box
