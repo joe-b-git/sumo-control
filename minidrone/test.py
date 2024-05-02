@@ -52,7 +52,7 @@ def main():
                 print('Person detected:', ctrl.display.person_detected)
                 print('Position of the most centered person:', ctrl.display.person_position)
 
-                turn = 0  # Initialize turn
+                speed, turn = 0, 0  # Initialize turn
 
                 if ctrl.display.person_detected:
                     # Assuming the center of the image is at x = 320
@@ -68,6 +68,11 @@ def main():
                         turn = 20
                     elif ctrl.display.person_position[0] > 380:
                         turn = 10  # Turn right
+
+                    if ctrl.display.person_position[1] < 440:
+                        speed = 40
+                    elif ctrl.display.person_position[1] > 460:
+                        speed = -20
 
             ctrl.move(speed, turn)
 

@@ -3,7 +3,7 @@ Modifications planned:
 - [x] Face detection in camera
 - [x] Body detection in camera
 - [x] Person tracking
-- [ ] Person following
+- [x] Person following
 - [ ] Object tracking - rolling ball
 - [ ] Object following - rolling ball
 - [ ] Orb-SLAM for Monocular Vision - No Odometry/Intertial Measurement
