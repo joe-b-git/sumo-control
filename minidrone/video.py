@@ -6,6 +6,8 @@ from threading import Event, Thread
 import os
 import time
 from threading import Lock
+from vidstab import VidStab
+
 
 class SumoDisplay(Thread):
     def __init__(self, receiver):
@@ -46,6 +48,9 @@ class SumoDisplay(Thread):
         self.person_detected = False
         self.person_position = None
 
+        # Initialize the video stabilizer
+        self.stabilizer = VidStab()
+
     def run(self):
         prev_frame_time = 0
         while self.should_run.isSet():
@@ -61,6 +66,9 @@ class SumoDisplay(Thread):
                 byte_frame = BytesIO(frame)
                 img = np.array(Image.open(byte_frame))
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+                # Stabilize the image
+                # img = self.stabilizer.stabilize_frame(input_frame=img, smoothing_window=30)
 
                 height, width, channels = img.shape
 
